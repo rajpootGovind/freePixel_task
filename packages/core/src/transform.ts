@@ -1,39 +1,50 @@
-// packages/core/src/transform.ts
-import sharp from "sharp";
+import sharp, { type Sharp } from "sharp";
+import { toImageProcessingError } from "./errors.js";
+import { feedInput } from "./input.js";
 import type { ImageInput, TransformOptions, TransformResult } from "./types.js";
+import { validateTransformOptions } from "./validate.js";
 
-export async function transform(
-  input: ImageInput,
-  options: TransformOptions = {}
-): Promise<TransformResult> {
-  // sharp(input) accepts a path, a Buffer, or a stream directly — no
-  // manual branching needed for those three input kinds.
-  let pipeline = sharp(input as never);
+const DEFAULT_QUALITY = 80;
 
-  // .rotate() with NO arguments reads the EXIF orientation tag and
-  // rotates the pixels to match it. Must happen before resize.
-  pipeline = pipeline.rotate();
+// Builds the Sharp pipeline. Exported separately so `api` can pipe an
+// upload stream straight through it without buffering (see Step 11).
+export function createTransformStream(opts: TransformOptions = {}): Sharp {
+  validateTransformOptions(opts);
 
-  if (options.width || options.height) {
-    pipeline = pipeline.resize({
-      width: options.width,
-      height: options.height,
-      fit: options.fit ?? "cover",
-    });
+  // .rotate() with no args applies EXIF orientation — must come before
+  // resize, or width/height would apply to the unrotated pixel grid.
+  const pipeline = sharp({ failOn: "error" }).rotate();
+
+  if (opts.width !== undefined || opts.height !== undefined) {
+    pipeline.resize({ width: opts.width, height: opts.height, fit: opts.fit ?? "cover" });
   }
 
-  if (options.format) {
-    pipeline = pipeline.toFormat(options.format, {
-      quality: options.quality ?? 80,
-    });
+  if (opts.format !== undefined) {
+    const quality = opts.quality ?? DEFAULT_QUALITY;
+    pipeline.toFormat(opts.format, opts.format === "png" ? {} : { quality });
   }
 
-  const { data, info } = await pipeline.toBuffer({ resolveWithObject: true });
+  return pipeline;
+}
 
-  return {
-    data,
-    format: options.format ?? info.format,
-    width: info.width,
-    height: info.height,
-  };
+export async function transform(input: ImageInput, opts: TransformOptions = {}): Promise<TransformResult> {
+  const pipeline = createTransformStream(opts);
+  const sourceFailure = feedInput(input, pipeline);
+
+  try {
+    const { data, info } = await Promise.race([
+      pipeline.toBuffer({ resolveWithObject: true }),
+      sourceFailure,
+    ]);
+    return {
+      data,
+      // Sharp reports avif output as "heif" — report what was actually
+      // requested so `api` can set Content-Type directly from this value.
+      format: opts.format ?? info.format,
+      width: info.width,
+      height: info.height,
+    };
+  } catch (error) {
+    throw toImageProcessingError(error);
+  }
 }
