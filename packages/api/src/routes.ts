@@ -9,7 +9,7 @@ import { parseTransformOptions } from "./parseOptions.js";
 // From there on (see below) everything is a real stream into Sharp.
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB, arbitrary but sane
+  limits: { fileSize: 25 * 1024 * 1024 }, 
 });
 
 export const router = Router();
@@ -18,6 +18,7 @@ router.post(
   "/transform",
   upload.single("file"),
   asyncHandler(async (req, res) => {
+    console.log("Received /transform request with body:", req.body);
     if (!req.file) {
       throw new ImageProcessingError("INVALID_INPUT", `Missing required file field "file".`);
     }

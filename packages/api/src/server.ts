@@ -5,7 +5,7 @@ import { errorHandler } from "./errors.js";
 
 const app = express();
 
-app.use(cors()); // UI (port 5173) calling api (port 3000) is a cross-origin request
+app.use(cors({ origin: process.env.UI_ORIGIN ?? "*" }));
 app.use(router);
 
 // Must be registered LAST — Express calls this only when a route calls next(err)
