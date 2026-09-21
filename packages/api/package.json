@@ -1,0 +1,28 @@
+{
+  "name": "@imgsvc/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "tsx watch src/server.ts",
+    "test": "echo \"no api tests yet\"",
+    "lint": "echo \"lint not set up yet\""
+  },
+  "dependencies": {
+    "@imgsvc/core": "workspace:*",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "multer": "^2.4.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/multer": "^2.2.0",
+    "@types/node": "^26.6.2",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2"
+  }
+}
