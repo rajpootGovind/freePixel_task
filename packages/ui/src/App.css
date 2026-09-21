@@ -479,3 +479,33 @@ button,
     gap: 0.6rem;
   }
 }
+
+.specs--compact {
+  margin-top: 1rem;
+  gap: 1.25rem;
+}
+
+.output__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.output__header h2 {
+  margin: 0;
+}
+
+.download {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.82rem;
+  color: var(--accent-soft);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 150ms ease, color 150ms ease;
+}
+
+.download:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}

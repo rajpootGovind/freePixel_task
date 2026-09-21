@@ -23,10 +23,23 @@ function formatBytes(bytes: number): string {
   return `${(kb / 1024).toFixed(1)} MB`;
 }
 
+async function fetchMetadata(blob: Blob, filename: string): Promise<Metadata> {
+  const formData = new FormData();
+  formData.append("file", blob, filename);
+
+  const res = await fetch(`${API_URL}/info`, { method: "POST", body: formData });
+  if (!res.ok) {
+    const body = await res.json();
+    throw new Error(body.error ?? "Fetching metadata failed.");
+  }
+  return res.json();
+}
+
 export default function App() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [originalMetadata, setOriginalMetadata] = useState<Metadata | null>(null);
 
   const [width, setWidth] = useState("");
   const [height, setHeight] = useState("");
@@ -34,12 +47,10 @@ export default function App() {
   const [format, setFormat] = useState<Format>("webp");
 
   const [resultUrl, setResultUrl] = useState<string | null>(null);
-  const [metadata, setMetadata] = useState<Metadata | null>(null);
+  const [resultMetadata, setResultMetadata] = useState<Metadata | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Local preview only — never sent anywhere, purely so you can see what
-  // you picked before running a transform.
   useEffect(() => {
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -57,8 +68,20 @@ export default function App() {
     setFile(next);
     setPreviewUrl(next ? URL.createObjectURL(next) : null);
     setResultUrl(null);
-    setMetadata(null);
+    setResultMetadata(null);
+    setOriginalMetadata(null);
     setError(null);
+
+    if (next) {
+      // Describe the source file as soon as it's picked — separate from the
+      // transform flow, so you can see what you're starting with right away.
+      fetchMetadata(next, next.name)
+        .then((meta) => setOriginalMetadata(meta))
+        .catch(() => {
+          // Non-critical: the transform flow still works even if this fails.
+          setOriginalMetadata(null);
+        });
+    }
   }
 
   function reset() {
@@ -76,17 +99,6 @@ export default function App() {
     if (dropped) handleFile(dropped);
   }
 
-  function buildFormData(): FormData {
-    if (!file) throw new Error("no file selected");
-    const formData = new FormData();
-    formData.append("file", file);
-    if (width) formData.append("width", width);
-    if (height) formData.append("height", height);
-    formData.append("fit", fit);
-    formData.append("format", format);
-    return formData;
-  }
-
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!file) {
@@ -96,14 +108,19 @@ export default function App() {
 
     setLoading(true);
     setError(null);
-    setMetadata(null);
+    setResultMetadata(null);
 
     try {
-      // /transform and /info both need their own FormData instance —
-      // a FormData/its file stream can't be reused across two fetches.
+      const formData = new FormData();
+      formData.append("file", file);
+      if (width) formData.append("width", width);
+      if (height) formData.append("height", height);
+      formData.append("fit", fit);
+      formData.append("format", format);
+
       const transformRes = await fetch(`${API_URL}/transform`, {
         method: "POST",
-        body: buildFormData(),
+        body: formData,
       });
 
       if (!transformRes.ok) {
@@ -115,17 +132,10 @@ export default function App() {
       if (resultUrl) URL.revokeObjectURL(resultUrl);
       setResultUrl(URL.createObjectURL(blob));
 
-      const infoRes = await fetch(`${API_URL}/info`, {
-        method: "POST",
-        body: buildFormData(),
-      });
-
-      if (!infoRes.ok) {
-        const body = await infoRes.json();
-        throw new Error(body.error ?? "Fetching metadata failed.");
-      }
-
-      setMetadata(await infoRes.json());
+      // Describe the RESULT we just got back, not the original upload —
+      // otherwise this would always report the source file's own format.
+      const meta = await fetchMetadata(blob, `result.${format}`);
+      setResultMetadata(meta);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -186,6 +196,27 @@ export default function App() {
                   Remove
                 </button>
               </div>
+            )}
+
+            {originalMetadata && (
+              <dl className="specs specs--compact">
+                <div>
+                  <dt>Dimensions</dt>
+                  <dd>
+                    {originalMetadata.width} × {originalMetadata.height}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Format</dt>
+                  <dd>{originalMetadata.format}</dd>
+                </div>
+                {originalMetadata.orientation !== undefined && (
+                  <div>
+                    <dt>Orientation</dt>
+                    <dd>{originalMetadata.orientation}</dd>
+                  </div>
+                )}
+              </dl>
             )}
           </section>
 
@@ -254,7 +285,14 @@ export default function App() {
         )}
 
         <section className="output">
-          <h2>Output</h2>
+          <div className="output__header">
+            <h2>Output</h2>
+            {resultUrl && !loading && (
+              <a className="download" href={resultUrl} download={`transformed.${format}`}>
+                Download
+              </a>
+            )}
+          </div>
 
           {loading && <div className="scan" aria-hidden="true" />}
 
@@ -269,22 +307,22 @@ export default function App() {
               <div className="print">
                 <img className="print__image" src={resultUrl} alt="Transformed output" />
               </div>
-              {metadata && (
+              {resultMetadata && (
                 <dl className="specs">
                   <div>
                     <dt>Dimensions</dt>
                     <dd>
-                      {metadata.width} × {metadata.height}
+                      {resultMetadata.width} × {resultMetadata.height}
                     </dd>
                   </div>
                   <div>
                     <dt>Format</dt>
-                    <dd>{metadata.format}</dd>
+                    <dd>{resultMetadata.format}</dd>
                   </div>
-                  {metadata.orientation !== undefined && (
+                  {resultMetadata.orientation !== undefined && (
                     <div>
                       <dt>Orientation</dt>
-                      <dd>{metadata.orientation}</dd>
+                      <dd>{resultMetadata.orientation}</dd>
                     </div>
                   )}
                 </dl>
