@@ -21,6 +21,11 @@ html {
   overflow-x: hidden;
 }
 
+body {
+  margin: 0;
+  overflow-x: hidden;
+}
+
 img {
   max-width: 100%;
   height: auto;
@@ -33,17 +38,22 @@ button,
   -webkit-tap-highlight-color: transparent;
 }
 
+/* ---------- Page ---------- */
+
 .page {
   min-height: 100vh;
   background: var(--ink);
   color: var(--paper);
   font-family: "Work Sans", sans-serif;
   padding: clamp(1.5rem, 5vw, 3rem) clamp(1rem, 4vw, 1.25rem) 4rem;
+  overflow-x: hidden;
 }
 
 .frame {
   max-width: 880px;
+  width: 100%;
   margin: 0 auto;
+  min-width: 0;
 }
 
 .masthead {
@@ -75,18 +85,39 @@ button,
   margin: 0;
 }
 
+/* ---------- Main panels ---------- */
+
 .bench {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+
+  /*
+    Important:
+    minmax(0, 1fr) allows both panels to shrink
+    even when their content/image has a very large
+    intrinsic width.
+  */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+
   gap: 1px;
   background: var(--line-on-ink);
   border: 1px solid var(--line-on-ink);
+
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .panel {
   background: var(--ink);
   padding: 1.75rem;
-  overflow-x: auto;
+
+  /*
+    Prevent panel content from forcing the grid
+    wider than the available space.
+  */
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .panel h2,
@@ -100,15 +131,23 @@ button,
   margin-top: 1.75rem;
 }
 
+/* ---------- Upload area ---------- */
+
 .drop {
   display: flex;
   align-items: center;
   justify-content: center;
+
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   min-height: 180px;
+
   border: 1px dashed var(--line-on-ink);
   border-radius: var(--radius);
   cursor: pointer;
   overflow: hidden;
+
   transition: border-color 150ms ease, background 150ms ease;
 }
 
@@ -137,12 +176,18 @@ button,
 
 .drop__empty {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   gap: 0.3rem;
+
   color: rgba(244, 239, 227, 0.55);
   font-size: 0.9rem;
   text-align: center;
+
+  /*
+    Prevent empty state from creating overflow.
+  */
+  max-width: 100%;
 }
 
 .drop__or {
@@ -150,56 +195,102 @@ button,
   color: rgba(244, 239, 227, 0.35);
 }
 
+/*
+  Image preview
+
+  The important part is:
+  - width: 100%
+  - max-width: 100%
+  - fixed preview height
+  - object-fit: contain
+
+  This means even a 5000px/10000px wide source
+  image cannot increase the panel width.
+*/
 .drop__preview {
+  display: block;
+
   width: 100%;
-  height: 100%;
-  max-height: 220px;
+  max-width: 100%;
+  height: 220px;
+
   object-fit: contain;
+  object-position: center;
+
   background: var(--paper-dim);
 }
+
+/* ---------- File information ---------- */
 
 .filerow {
   display: flex;
   align-items: baseline;
   gap: 0.6rem;
+
   margin-top: 0.85rem;
+
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.8rem;
   color: rgba(244, 239, 227, 0.65);
+
+  /*
+    Prevent long filenames/content from
+    increasing the panel width.
+  */
+  min-width: 0;
+  max-width: 100%;
 }
 
 .filerow__name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+
   flex: 1;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.filerow__size {
+  flex-shrink: 0;
 }
 
 .linkbtn {
   background: none;
   border: none;
   color: var(--accent-soft);
+
   font-family: inherit;
   font-size: inherit;
+
   cursor: pointer;
   padding: 0;
+
+  flex-shrink: 0;
 }
 
 .linkbtn:hover {
   color: var(--accent);
 }
 
+/* ---------- Dimension fields ---------- */
+
 .field-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
   gap: 0.7rem;
   margin-bottom: 0.25rem;
+
+  min-width: 0;
+  max-width: 100%;
 }
 
 .field {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+
+  min-width: 0;
 }
 
 .field span {
@@ -209,14 +300,25 @@ button,
 
 .field input,
 .field select {
+  width: 100%;
+  min-width: 0;
+
   background: transparent;
   border: none;
   border-bottom: 1px solid var(--line-on-ink);
+
   color: var(--paper);
   font-family: "IBM Plex Mono", monospace;
-  font-size: 16px; /* kept at/above 16px on purpose: below this, iOS Safari auto-zooms the page on focus */
+  font-size: 16px;
+
+  /*
+    Kept at/above 16px on purpose:
+    below this, iOS Safari auto-zooms the page on focus.
+  */
   padding: 0.4rem 0.1rem;
+
   outline: none;
+
   transition: border-color 150ms ease;
 }
 
@@ -234,23 +336,38 @@ button,
   color: var(--paper);
 }
 
+/* ---------- Format chips ---------- */
+
 .chips {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+
   margin-bottom: 1.75rem;
+
+  min-width: 0;
+  max-width: 100%;
 }
 
 .chip {
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.82rem;
+
   background: transparent;
   border: 1px solid var(--line-on-ink);
   color: rgba(244, 239, 227, 0.65);
+
   border-radius: var(--radius);
   padding: 0.4rem 0.85rem;
+
   cursor: pointer;
-  transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+
+  transition:
+    border-color 150ms ease,
+    color 150ms ease,
+    background 150ms ease;
+
+  flex-shrink: 0;
 }
 
 .chip:hover {
@@ -264,18 +381,28 @@ button,
   color: var(--paper);
 }
 
+/* ---------- Run button ---------- */
+
 .run {
   width: 100%;
+
   background: var(--accent);
   color: var(--paper);
+
   border: none;
   border-radius: var(--radius);
+
   font-family: "Work Sans", sans-serif;
   font-weight: 600;
   font-size: 0.95rem;
+
   padding: 0.85rem;
+
   cursor: pointer;
-  transition: background 150ms ease, opacity 150ms ease;
+
+  transition:
+    background 150ms ease,
+    opacity 150ms ease;
 }
 
 .run:hover:not(:disabled) {
@@ -287,19 +414,48 @@ button,
   cursor: not-allowed;
 }
 
+/* ---------- Error ---------- */
+
 .error {
   margin: 1.5rem 0 0;
+
   padding: 0.85rem 1rem;
+
   border-left: 2px solid var(--error);
   background: rgba(154, 47, 31, 0.1);
+
   color: #e3a493;
   font-size: 0.9rem;
+
+  overflow-wrap: anywhere;
 }
+
+/* ---------- Output ---------- */
 
 .output {
   margin-top: 2.5rem;
+
   border-top: 1px solid var(--line-on-ink);
+
   padding-top: 2rem;
+
+  min-width: 0;
+  max-width: 100%;
+}
+
+.output__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+
+  gap: 1rem;
+  min-width: 0;
+
+  margin-bottom: 1rem;
+}
+
+.output__header h2 {
+  margin: 0;
 }
 
 .output__empty {
@@ -307,9 +463,39 @@ button,
   font-size: 0.9rem;
 }
 
+.download {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.82rem;
+
+  color: var(--accent-soft);
+  text-decoration: none;
+
+  border-bottom: 1px solid transparent;
+
+  transition:
+    border-color 150ms ease,
+    color 150ms ease;
+
+  flex-shrink: 0;
+}
+
+.download:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ---------- Loading animation ---------- */
+
 .scan {
   height: 2px;
-  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--accent),
+    transparent
+  );
+
   background-size: 200% 100%;
 }
 
@@ -323,20 +509,37 @@ button,
   from {
     background-position: 200% 0;
   }
+
   to {
     background-position: -200% 0;
   }
 }
 
+/* ---------- Result image ---------- */
+
 .print {
   background: var(--paper);
   padding: 1.5rem;
+
   border-radius: var(--radius);
+
+  /*
+    Important for very wide transformed images.
+  */
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
+  overflow: hidden;
 }
 
 .print__image {
   display: block;
+
+  width: auto;
   max-width: 100%;
+  height: auto;
+
   margin: 0 auto;
 }
 
@@ -351,23 +554,33 @@ button,
     opacity: 0;
     transform: scale(0.98);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
   }
 }
 
+/* ---------- Specs ---------- */
+
 .specs {
   display: flex;
   gap: 2rem;
+
   margin: 1.25rem 0 0;
+
   flex-wrap: wrap;
+
+  min-width: 0;
+  max-width: 100%;
 }
 
 .specs > div {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
+
+  min-width: 0;
 }
 
 .specs dt {
@@ -377,20 +590,28 @@ button,
 
 .specs dd {
   margin: 0;
+
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.95rem;
   font-variant-numeric: tabular-nums;
+
+  overflow-wrap: anywhere;
+}
+
+.specs--compact {
+  margin-top: 1rem;
+  gap: 1.25rem;
 }
 
 /* ---------- Responsive ---------- */
 
 @media (max-width: 760px) {
   .bench {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .field-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .panel {
@@ -436,6 +657,10 @@ button,
     min-height: 130px;
   }
 
+  .drop__preview {
+    height: 180px;
+  }
+
   .drop__empty {
     font-size: 0.82rem;
   }
@@ -479,34 +704,8 @@ button,
   .field-row {
     gap: 0.6rem;
   }
-}
 
-.specs--compact {
-  margin-top: 1rem;
-  gap: 1.25rem;
-}
-
-.output__header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-}
-
-.output__header h2 {
-  margin: 0;
-}
-
-.download {
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 0.82rem;
-  color: var(--accent-soft);
-  text-decoration: none;
-  border-bottom: 1px solid transparent;
-  transition: border-color 150ms ease, color 150ms ease;
-}
-
-.download:hover {
-  color: var(--accent);
-  border-color: var(--accent);
+  .drop__preview {
+    height: 160px;
+  }
 }
